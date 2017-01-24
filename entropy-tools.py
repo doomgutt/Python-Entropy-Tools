@@ -1,74 +1,10 @@
 import numpy as np
-
-def nhist(x,bins):
-	
-	if len(x.shape)==1:
-		M=1
-		N=len(x)
-	else:
-		(M,N)=x.shape
-	I=np.zeros(shape=(bins,) * M)
-	S=I.shape
-
-	Sub=()
-	if M==1:
-		idx=x
-		I=1.0/N*np.bincount(idx,minlength=bins).astype(float)
-	else:
-		for i in range(M):
-			Sub=Sub+(x[i,:],)
-		idx= np.ravel_multi_index(Sub, dims=S, order='F')
-		I1=1.0/N*np.bincount(idx,minlength=bins**M).astype(float)
-		I=np.reshape(I1, S, order='F')
-
-	return I
-
 from itertools import permutations
-
-def permdist(x,m):
-	L=len(x)
-	P=np.array(list(permutations(range(m))))
-	NP=P.shape[0]
-	
-	x=x + np.linspace(0, 1E-10, num=L)
-	P1=np.zeros((m,L-m+1)).astype(int)
-	for i in range(m):
-		for j in range(m):
-			P1[j,:]=P1[j,:]+(x[j:L-m+j+1]>x[i:L-m+i+1]).astype(int)
-	P1=np.transpose(P1)
-	
-	y=np.zeros(L-m+1).astype(int)
-	for i in range(NP):
-		idx=np.where(np.prod(P1==np.tile(P[i,:],(L-m+1,1)), axis=1))
-		y[idx[0]]=i
-
-	return y
-	
-def TransferEntropy(x,y,m,r):
-
-	L=min([len(x),len(y)])-m-r+1
-	x1=permdist(x[0:L],m);
-	y1=permdist(y[0:L],m);
-	y2=permdist(y[m+r-1:L+m+r-1],m);
-	
-	bins=np.math.factorial(m)
-	Px1y1y2=nhist(np.vstack([x1,y1,y2]),bins);
-	Py1=nhist(y1,bins);
-	Py1y2=nhist(np.vstack([y1,y2]),bins);
-	Px1y1=nhist(np.vstack([x1,y1]),bins);
-	
-	TE=0.0
-	for i in range(bins):
-		for j in range(bins):
-			for k in range(bins):
-				if Px1y1y2[i,j,k]>0:
-					TE+=Px1y1y2[i,j,k]*np.log(Px1y1y2[i,j,k]*Py1[j]/(Py1y2[j,k]*Px1y1[i,j]))
-	return TE/np.log(m)
 
 def pdf(x,bins):
 	H, edges = np.histogramdd(x,bins)
 	return H/np.sum(H)
-	
+
 def uniquelist(x):
 
 	vals, inds = np.unique(x, return_index=True)
@@ -109,30 +45,124 @@ def MI(x,y):
 				MI+=Pxy[i,j]*np.log(Pxy[i,j]/(Px[i]*Py[j]))
 	return MI
 
-def TE(x,y,r):
+"""
+Transfer entropy of discretized time series x and y, computing transfer entropy form x to a future state of y
+x = source series
+y = sink series
+r = distance of future state
+d = number of samples of present state
+l = distance between samples of present state
+"""
+
+def TransferEntropy(x,y,r=1,d=1,l=1):
 
 	xu=uniquelist(x)
 	yu=uniquelist(y)
-	L=min([len(x),len(y)])-r
-	x1=xu[0:L];
-	y1=yu[0:L];
-	y2=yu[r:L+r];
+	nx=len(np.unique(xu))
+	ny=len(np.unique(yu))
+	L=min([len(x),len(y)])-r-(d-1)*l
 	
-	binsx=int(max(x)-min(x)+1)
-	binsy=int(max(y)-min(y)+1)
+	x1=xu[(d-1)*l:L+(d-1)*l]
+	y1=yu[(d-1)*l:L+(d-1)*l]
+	for i in range(1,d):
+		x1=x1 + xu[(d-1)*l-i:L+(d-1)*l-i]
+		y1=y1 + ny*yu[(d-1)*l-i:L+(d-1)*l-i]
+	y2=yu[r+(d-1)*l:L+r+(d-1)*l]
+	
+	x1=uniquelist(x1)
+	y1=uniquelist(y1)
+	
+	binsx1=int(max(x1)-min(x1)+1)
+	binsy1=int(max(y1)-min(y1)+1)
+	binsy2=int(max(y2)-min(y2)+1)
 
-	Px1y1y2 = pdf([x1,y1,y2],(binsx,binsy,binsy))
-	Py1 = pdf(y1,binsy)
-	Py1y2 = pdf([y1,y2],(binsy,binsy))
-	Px1y1 = pdf([x1,y1],(binsx,binsy))
-	
+	Px1y1y2 = pdf([x1,y1,y2],(binsx1,binsy1,binsy2))
+	Py1 = pdf(y1,binsy1)
+	Py1y2 = pdf([y1,y2],(binsy1,binsy2))
+	Px1y1 = pdf([x1,y1],(binsx1,binsy1))
 	
 	TE=0.0
-	for i in range(binsx):
-		for j in range(binsy):
-			for k in range(binsy):
+	for i in range(binsx1):
+		for j in range(binsy1):
+			for k in range(binsy2):
 				if Px1y1y2[i,j,k]>0:
+#					print(i,j,k)
+#					print(Px1y1y2[i,j,k],np.log(Px1y1y2[i,j,k]*Py1[j]/(Py1y2[j,k]*Px1y1[i,j])))
 					TE+=Px1y1y2[i,j,k]*np.log(Px1y1y2[i,j,k]*Py1[j]/(Py1y2[j,k]*Px1y1[i,j]))
 	return TE
 	
 	
+
+	
+def nhist(x,bins):
+	
+	if len(x.shape)==1:
+		M=1
+		N=len(x)
+	else:
+		(M,N)=x.shape
+	I=np.zeros(shape=(bins,) * M)
+	S=I.shape
+
+	Sub=()
+	if M==1:
+		idx=x
+		I=1.0/N*np.bincount(idx,minlength=bins).astype(float)
+	else:
+		for i in range(M):
+			Sub=Sub+(x[i,:],)
+		idx= np.ravel_multi_index(Sub, dims=S, order='F')
+		I1=1.0/N*np.bincount(idx,minlength=bins**M).astype(float)
+		I=np.reshape(I1, S, order='F')
+
+	return I
+
+
+def permdist(x,m):
+	L=len(x)
+	P=np.array(list(permutations(range(m))))
+	NP=P.shape[0]
+	
+	x=x + np.linspace(0, 1E-10, num=L)
+	P1=np.zeros((m,L-m+1)).astype(int)
+	for i in range(m):
+		for j in range(m):
+			P1[j,:]=P1[j,:]+(x[j:L-m+j+1]>x[i:L-m+i+1]).astype(int)
+	P1=np.transpose(P1)
+	
+	y=np.zeros(L-m+1).astype(int)
+	for i in range(NP):
+		idx=np.where(np.prod(P1==np.tile(P[i,:],(L-m+1,1)), axis=1))
+		y[idx[0]]=i
+
+	return y
+	
+"""
+Symbolic transfer entropy of discretized time series x and y, computing transfer entropy form x to a future state of y
+using symbolization based on permutation
+x = source series
+y = sink series
+m = number of bits per symbol
+r = distance of future state
+"""
+def SymbolicTransferEntropy(x,y,m,r):
+
+	L=min([len(x),len(y)])-m-r+1
+	x1=permdist(x[0:L],m);
+	y1=permdist(y[0:L],m);
+	y2=permdist(y[m+r-1:L+m+r-1],m);
+	
+	bins=np.math.factorial(m)
+	Px1y1y2=nhist(np.vstack([x1,y1,y2]),bins);
+	Py1=nhist(y1,bins);
+	Py1y2=nhist(np.vstack([y1,y2]),bins);
+	Px1y1=nhist(np.vstack([x1,y1]),bins);
+	
+	TE=0.0
+	for i in range(bins):
+		for j in range(bins):
+			for k in range(bins):
+				if Px1y1y2[i,j,k]>0:
+					TE+=Px1y1y2[i,j,k]*np.log(Px1y1y2[i,j,k]*Py1[j]/(Py1y2[j,k]*Px1y1[i,j]))
+	return TE/np.log(m)
+

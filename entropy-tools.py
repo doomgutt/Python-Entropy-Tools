@@ -45,6 +45,36 @@ def MI(x,y):
 				MI+=Pxy[i,j]*np.log(Pxy[i,j]/(Px[i]*Py[j]))
 	return MI
 
+def Imin(x,y,z):
+
+	xu=uniquelist(x)
+	yu=uniquelist(y)
+	zu=uniquelist(z)
+	binsx=int(max(x)-min(x)+1)
+	binsy=int(max(y)-min(y)+1)
+	binsz=int(max(z)-min(z)+1)
+	
+	Px = pdf(xu,binsx)
+	Py = pdf(yu,binsy)
+	Pz = pdf(zu,binsz)
+	Pxy = pdf([xu,yu],(binsx,binsy))
+	Pxz = pdf([xu,zu],(binsx,binsz))
+	
+	I=0.0
+	for i in range(binsx):
+		Ixy=0
+		Ixz=0
+		for j in range(binsy):
+			if Pxy[i,j]>0:
+				Ixy+=Pxy[i,j]*np.log(Pxy[i,j]/(Px[i]*Py[j]))
+		for j in range(binsz):
+			if Pxz[i,j]>0:
+				Ixz+=Pxz[i,j]*np.log(Pxz[i,j]/(Px[i]*Pz[j]))
+		I+=min(Ixy,Ixz)
+				
+	return I
+
+
 """
 Transfer entropy of discretized time series x and y, computing transfer entropy form x to a future state of y
 x = source series

@@ -26,7 +26,7 @@ def Entropy(x):
 			E+=-Px[i]*np.log(Px[i])
 	return E
 
-def MI(x,y):
+def I(x,y):
 
 	xu=uniquelist(x)
 	yu=uniquelist(y)
@@ -38,12 +38,12 @@ def MI(x,y):
 	Pxy = pdf([xu,yu],(binsx,binsy))
 	
 	
-	MI=0.0
+	I=0.0
 	for i in range(binsx):
 		for j in range(binsy):
 			if Pxy[i,j]>0:
-				MI+=Pxy[i,j]*np.log(Pxy[i,j]/(Px[i]*Py[j]))
-	return MI
+				I+=Pxy[i,j]*np.log(Pxy[i,j]/(Px[i]*Py[j]))
+	return I
 
 def Imin(x,y,z):
 

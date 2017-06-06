@@ -9,14 +9,16 @@ def uniquelist(x):
 
 	vals, inds = np.unique(x, return_index=True)
 	x1=np.copy(x)
+	binsx=len(vals)
 	
 	for i in range(len(x)):
 		x1[i]= np.where(vals==x[i])[0][0]
-	return x1
+	return x1,binsx
+
 def Entropy(x):
 
-	xu=uniquelist(x)
-	binsx=int(max(xu)-min(xu)+1)
+	xu,binsx=uniquelist(x)
+	print(binsx)
 
 	Px = pdf(xu,binsx)
 	
@@ -28,31 +30,26 @@ def Entropy(x):
 
 def I(x,y):
 
-	xu=uniquelist(x)
-	yu=uniquelist(y)
-	binsx=int(max(xu)-min(xu)+1)
-	binsy=int(max(yu)-min(yu)+1)
+	xu,binsx=uniquelist(x)
+	yu,binsy=uniquelist(y)
 
 	Px = pdf(xu,binsx)
 	Py = pdf(yu,binsy)
 	Pxy = pdf([xu,yu],(binsx,binsy))
 	
-	
-	I=0.0
+	MI=0.0
 	for i in range(binsx):
 		for j in range(binsy):
 			if Pxy[i,j]>0:
-				I+=Pxy[i,j]*np.log(Pxy[i,j]/(Px[i]*Py[j]))
-	return I
+				MI+=Pxy[i,j]*np.log(Pxy[i,j]/(Px[i]*Py[j]))
+	return MI
+
 
 def Imin(x,y,z):
 
-	xu=uniquelist(x)
-	yu=uniquelist(y)
-	zu=uniquelist(z)
-	binsx=int(max(xu)-min(xu)+1)
-	binsy=int(max(yu)-min(yu)+1)
-	binsz=int(max(zu)-min(zu)+1)
+	xu,binsx=uniquelist(x)
+	yu,binsy=uniquelist(y)
+	zu,binsz=uniquelist(z)
 	
 	Px = pdf(xu,binsx)
 	Py = pdf(yu,binsy)
@@ -74,6 +71,21 @@ def Imin(x,y,z):
 				
 	return I
 
+def ConditionalEntropy(x,y):
+
+	xu,binsx=uniquelist(x)
+	yu,binsy=uniquelist(y)
+
+	Py = pdf(yu,binsy)
+	Pxy = pdf([xu,yu],(binsx,binsy))
+	
+	
+	CE=0.0
+	for i in range(binsx):
+		for j in range(binsy):
+			if Pxy[i,j]>0:
+				CE+=Pxy[i,j]*np.log(Py[j]/(Pxy[i,j]))
+
 
 """
 Transfer entropy of discretized time series x and y, computing transfer entropy form x to a future state of y
@@ -83,11 +95,10 @@ r = distance of future state
 d = number of samples of present state
 l = distance between samples of present state
 """
+def TE(x,y,r=1,d=1,l=1):
 
-def TransferEntropy(x,y,r=1,d=1,l=1):
-
-	xu=uniquelist(x)
-	yu=uniquelist(y)
+	xu,_=uniquelist(x)
+	yu,binsy2=uniquelist(y)
 	nx=len(np.unique(xu))
 	ny=len(np.unique(yu))
 	L=min([len(x),len(y)])-r-(d-1)*l
@@ -95,16 +106,12 @@ def TransferEntropy(x,y,r=1,d=1,l=1):
 	x1=xu[(d-1)*l:L+(d-1)*l]
 	y1=yu[(d-1)*l:L+(d-1)*l]
 	for i in range(1,d):
-		x1=x1 + xu[(d-1)*l-i:L+(d-1)*l-i]
-		y1=y1 + ny*yu[(d-1)*l-i:L+(d-1)*l-i]
+		x1=nx*x1 + xu[(d-1)*l-i:L+(d-1)*l-i]
+		y1=ny*y1 + yu[(d-1)*l-i:L+(d-1)*l-i]
 	y2=yu[r+(d-1)*l:L+r+(d-1)*l]
 	
-	x1=uniquelist(x1)
-	y1=uniquelist(y1)
-	
-	binsx1=int(max(x1)-min(x1)+1)
-	binsy1=int(max(y1)-min(y1)+1)
-	binsy2=int(max(y2)-min(y2)+1)
+	x1,binsx1=uniquelist(x1)
+	y1,binsy1=uniquelist(y1)
 
 	Px1y1y2 = pdf([x1,y1,y2],(binsx1,binsy1,binsy2))
 	Py1 = pdf(y1,binsy1)
@@ -116,8 +123,6 @@ def TransferEntropy(x,y,r=1,d=1,l=1):
 		for j in range(binsy1):
 			for k in range(binsy2):
 				if Px1y1y2[i,j,k]>0:
-#					print(i,j,k)
-#					print(Px1y1y2[i,j,k],np.log(Px1y1y2[i,j,k]*Py1[j]/(Py1y2[j,k]*Px1y1[i,j])))
 					TE+=Px1y1y2[i,j,k]*np.log(Px1y1y2[i,j,k]*Py1[j]/(Py1y2[j,k]*Px1y1[i,j]))
 	return TE
 	

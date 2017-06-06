@@ -16,7 +16,7 @@ def uniquelist(x):
 def Entropy(x):
 
 	xu=uniquelist(x)
-	binsx=int(max(x)-min(x)+1)
+	binsx=int(max(xu)-min(xu)+1)
 
 	Px = pdf(xu,binsx)
 	
@@ -30,8 +30,8 @@ def I(x,y):
 
 	xu=uniquelist(x)
 	yu=uniquelist(y)
-	binsx=int(max(x)-min(x)+1)
-	binsy=int(max(y)-min(y)+1)
+	binsx=int(max(xu)-min(xu)+1)
+	binsy=int(max(yu)-min(yu)+1)
 
 	Px = pdf(xu,binsx)
 	Py = pdf(yu,binsy)
@@ -50,9 +50,9 @@ def Imin(x,y,z):
 	xu=uniquelist(x)
 	yu=uniquelist(y)
 	zu=uniquelist(z)
-	binsx=int(max(x)-min(x)+1)
-	binsy=int(max(y)-min(y)+1)
-	binsz=int(max(z)-min(z)+1)
+	binsx=int(max(xu)-min(xu)+1)
+	binsy=int(max(yu)-min(yu)+1)
+	binsz=int(max(zu)-min(zu)+1)
 	
 	Px = pdf(xu,binsx)
 	Py = pdf(yu,binsy)

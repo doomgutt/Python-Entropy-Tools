@@ -18,7 +18,6 @@ def uniquelist(x):
 def Entropy(x):
 
 	xu,binsx=uniquelist(x)
-	print(binsx)
 
 	Px = pdf(xu,binsx)
 	

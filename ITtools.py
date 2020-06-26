@@ -5,14 +5,20 @@ def pdf(x,bins):
 	H, edges = np.histogramdd(x,bins)
 	return H/np.sum(H)
 
+# def uniquelist(x):
+
+# 	vals, inds = np.unique(x, return_index=True)
+# 	x1=np.copy(x)
+# 	binsx=len(vals)
+	
+# 	for i in range(len(x)):
+# 		x1[i]= np.where(vals==x[i])[0][0]
+# 	return x1,binsx
+
 def uniquelist(x):
 
-	vals, inds = np.unique(x, return_index=True)
-	x1=np.copy(x)
+	vals, x1 = np.unique(x, return_inverse=True)
 	binsx=len(vals)
-	
-	for i in range(len(x)):
-		x1[i]= np.where(vals==x[i])[0][0]
 	return x1,binsx
 
 def Entropy(x):
